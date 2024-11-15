@@ -1,0 +1,21 @@
+[debug] [2024-09-24T23:02:19.894Z] ----------------------------------------------------------------------
+[debug] [2024-09-24T23:02:19.897Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\kawai\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2024-09-24T23:02:19.898Z] CLI Version:   13.19.0
+[debug] [2024-09-24T23:02:19.898Z] Platform:      win32
+[debug] [2024-09-24T23:02:19.898Z] Node Version:  v20.17.0
+[debug] [2024-09-24T23:02:19.898Z] Time:          Tue Sep 24 2024 18:02:19 GMT-0500 (hora estándar de Colombia)
+[debug] [2024-09-24T23:02:19.898Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2024-09-24T23:02:19.906Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2024-09-24T23:02:19.907Z] > authorizing via signed-in user (julbarrper24@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\kawai\Documents\estadistica\Desarrollo Movil\insta\insta
+
