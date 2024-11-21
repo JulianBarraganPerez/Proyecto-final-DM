@@ -3,6 +3,7 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'expo-router';
 import { AuthContext } from '@/context/AuthContext';
 
+
 export default function Signup() {
     const { signUp } = useContext(AuthContext); // Usamos el contexto para acceder a la función de registro
 

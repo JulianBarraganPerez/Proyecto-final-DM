@@ -7,14 +7,17 @@ import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { DataContext } from '@/dataContext/DataContext';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth } from '@/utils/firebaseConfig'; // Asegúrate de importar auth
+import { db, auth } from '@/utils/firebaseConfig';
 import { collection, addDoc } from 'firebase/firestore';
 
-export default function NewPost() {
+export default function NewBookPost() {
     const { newPost } = useContext(DataContext);
     const [isVisible, setIsVisible] = useState(false);
     const [currentPhoto, setCurrentPhoto] = useState<{ uri: string } | undefined>(undefined);
     const [description, setDescription] = useState("");
+    const [title, setTitle] = useState("");
+    const [category, setCategory] = useState("");
+    const [price, setPrice] = useState("");
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationText, setLocationText] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
@@ -36,8 +39,9 @@ export default function NewPost() {
         if (location == null) return;
 
         try {
-            console.log (`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.coords.latitude}&lon=${location.coords.longitude}`)
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.coords.latitude}&lon=${location.coords.longitude}`);
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.coords.latitude}&lon=${location.coords.longitude}`
+            );
             const data = await response.json();
             setLocationText(data.display_name);
         } catch (error) {
@@ -47,31 +51,30 @@ export default function NewPost() {
 
     const handleSavePost = async () => {
         if (currentPhoto) {
-            // Crea una referencia en Firebase Storage
             const storage = getStorage();
             const storageRef = ref(storage, `images/${currentPhoto.uri.split('/').pop()}`);
             const response = await fetch(currentPhoto.uri);
             const blob = await response.blob();
 
-            // Sube la imagen a Firebase Storage
-            await uploadBytes(storageRef, blob).then((snapshot) => {
-                console.log('Uploaded a blob or file!');
-            });
-
-            // Obtén la URL de descarga
+            await uploadBytes(storageRef, blob);
             const downloadURL = await getDownloadURL(storageRef);
 
-            // Guarda el post en Firestore
-            await addDoc(collection(db, "posts"), {
-                userId: auth.currentUser?.uid, // Guarda el userId
+            await addDoc(collection(db, "books"), {
+                userId: auth.currentUser?.uid,
+                title,
+                category,
+                price,
                 address: locationText,
                 description,
                 image: downloadURL,
                 date: new Date()
             });
 
-            console.log('Post guardado en Firestore:', {
-                userId: auth.currentUser?.uid, 
+            console.log('Libro guardado en Firestore:', {
+                userId: auth.currentUser?.uid,
+                title,
+                category,
+                price,
                 address: locationText,
                 description,
                 image: downloadURL,
@@ -91,14 +94,12 @@ export default function NewPost() {
                 gap: 25
             }}
         >
-            <TouchableOpacity
-                onPress={() => setIsVisible(true)}
-            >
+            <TouchableOpacity onPress={() => setIsVisible(true)}>
                 {currentPhoto && currentPhoto.uri ? (
                     <Image
                         style={{
                             width: '100%',
-                            height: 200 // Ajusta la altura según sea necesario
+                            height: 200
                         }}
                         source={{ uri: currentPhoto.uri }}
                         contentFit="cover"
@@ -111,7 +112,6 @@ export default function NewPost() {
                             aspectRatio: 1 / 0.8,
                             borderRadius: 10,
                             justifyContent: 'center',
-                            alignContent: 'center',
                             alignItems: 'center',
                         }}
                     >
@@ -121,15 +121,38 @@ export default function NewPost() {
             </TouchableOpacity>
 
             <TextInput
+                label="Título"
+                mode="outlined"
+                onChangeText={text => setTitle(text)}
+                value={title}
+                style={{ borderRadius: 10 }}
+            />
+
+            <TextInput
+                label="Categoría"
+                mode="outlined"
+                onChangeText={text => setCategory(text)}
+                value={category}
+                style={{ borderRadius: 10 }}
+            />
+
+            <TextInput
+                label="Precio"
+                mode="outlined"
+                keyboardType="numeric"
+                onChangeText={text => setPrice(text)}
+                value={price}
+                style={{ borderRadius: 10 }}
+            />
+
+            <TextInput
                 label="Descripción"
                 mode="outlined"
                 multiline
                 onChangeText={text => setDescription(text)}
                 value={description}
                 numberOfLines={3}
-                style={{
-                    borderRadius: 10
-                }}
+                style={{ borderRadius: 10 }}
             />
 
             <TouchableOpacity onPress={getAddress} style={{ marginVertical: 10 }}>
@@ -140,9 +163,7 @@ export default function NewPost() {
                 icon="camera"
                 mode="contained"
                 onPress={() => setIsVisible(true)}
-                style={{
-                    borderRadius: 10
-                }}
+                style={{ borderRadius: 10 }}
             >
                 Tomar foto
             </Button>
@@ -151,11 +172,9 @@ export default function NewPost() {
                 icon="check"
                 mode="contained"
                 onPress={handleSavePost}
-                style={{
-                    borderRadius: 10
-                }}
+                style={{ borderRadius: 10 }}
             >
-                Guardar Post
+                Publicar libro
             </Button>
 
             <ModalCamera

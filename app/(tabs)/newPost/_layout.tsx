@@ -10,7 +10,7 @@ export default function RootLayout() {
     >
       <Stack.Screen name="index"
         options={{
-          title: "Instagram",
+          title: "Libreria Virtual",
         }}
       />
       {/* <Stack.Screen name="message"
