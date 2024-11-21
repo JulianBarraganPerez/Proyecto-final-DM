@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import React, { useContext, useEffect, useState } from 'react';
 import { Button, TextInput } from 'react-native-paper';
@@ -21,6 +21,20 @@ export default function NewBookPost() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationText, setLocationText] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
+    const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+
+    const categories = [
+        "Romance",
+        "Sci-Fi",
+        "Medieval",
+        "Manga",
+        "Comics",
+        "Drama",
+        "Terror",
+        "Fantasia",
+        "Aventura",
+        "Histórico",
+    ];
 
     useEffect(() => {
         (async () => {
@@ -128,13 +142,65 @@ export default function NewBookPost() {
                 style={{ borderRadius: 10 }}
             />
 
-            <TextInput
-                label="Categoría"
-                mode="outlined"
-                onChangeText={text => setCategory(text)}
-                value={category}
-                style={{ borderRadius: 10 }}
-            />
+            <TouchableOpacity
+                onPress={() => setCategoryModalVisible(true)}
+                style={{
+                    borderColor: 'grey',
+                    borderWidth: 1,
+                    padding: 15,
+                    borderRadius: 10,
+                }}
+            >
+                <Text>{category || "Seleccionar categoría"}</Text>
+            </TouchableOpacity>
+
+            <Modal
+                visible={categoryModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setCategoryModalVisible(false)}
+            >
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    }}
+                >
+                    <View
+                        style={{
+                            backgroundColor: 'white',
+                            padding: 20,
+                            borderRadius: 10,
+                            width: '80%',
+                        }}
+                    >
+                        <FlatList
+                            data={categories}
+                            keyExtractor={(item) => item}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setCategory(item);
+                                        setCategoryModalVisible(false);
+                                    }}
+                                    style={{
+                                        padding: 10,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: '#ccc',
+                                    }}
+                                >
+                                    <Text>{item}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                        <Button onPress={() => setCategoryModalVisible(false)}>
+                            Cerrar
+                        </Button>
+                    </View>
+                </View>
+            </Modal>
 
             <TextInput
                 label="Precio"

@@ -15,7 +15,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false
           }}
-          initialRouteName="signin"
+          
         >
           <Stack.Screen name="index" options={{ title: 'Ingresa' }} />
           {/* <Stack.Screen name="signin" options={{ title: 'Ingresa' }} /> */}
