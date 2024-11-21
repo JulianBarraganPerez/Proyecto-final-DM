@@ -13,6 +13,11 @@ interface Post {
   id: string;
   image: string;
   description: string;
+  title: string;
+  category: string;
+  price: string;
+  location: string;
+  date: string;
 }
 
 export default function Profile() {
@@ -54,7 +59,17 @@ export default function Profile() {
 
       const userPosts: Post[] = [];
       querySnapshot.forEach((doc) => {
-        userPosts.push({ id: doc.id, ...doc.data() } as Post);
+        const data = doc.data();
+        userPosts.push({
+          id: doc.id,
+          image: data.image,
+          description: data.description,
+          title: data.title || "",
+          category: data.category || "",
+          price: data.price || "",
+          location: data.address || "",
+          date: data.date?.toDate().toLocaleDateString() || "",
+        });
       });
 
       console.log('Publicaciones del usuario:', userPosts); 
@@ -68,7 +83,7 @@ export default function Profile() {
   const handleRefreshPosts = async () => {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
-      await fetchUserData(); // Ahora también recarga los datos del usuario
+      await fetchUserData(); 
       fetchUserPosts(userId);
     }
   };
@@ -96,6 +111,11 @@ export default function Profile() {
             renderItem={({ item }) => (
               <View style={styles.postContainer}>
                 <Image source={{ uri: item.image }} style={styles.image} />
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.category}>Categoría: {item.category}</Text>
+                <Text style={styles.price}>Precio: {item.price}</Text>
+                <Text style={styles.location}>Ubicación: {item.location}</Text>
+                <Text style={styles.date}>Fecha: {item.date}</Text>
                 <Text style={styles.description}>{item.description}</Text>
               </View>
             )}
@@ -167,10 +187,27 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
   },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginVertical: 4,
+  },
+  category: {
+    fontSize: 16,
+    fontStyle: 'italic',
+  },
+  price: {
+    fontSize: 16,
+  },
+  location: {
+    fontSize: 16,
+  },
+  date: {
+    fontSize: 14,
+    color: 'gray',
+  },
   description: {
     marginTop: 8,
     fontSize: 16,
   },
 });
-
-
