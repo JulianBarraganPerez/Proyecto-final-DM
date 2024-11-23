@@ -15,6 +15,9 @@ import {
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/utils/firebaseConfig';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { Link } from 'expo-router';
+import { LinkProps } from 'expo-router';
+
 
 interface Book {
     id: string;
@@ -29,6 +32,7 @@ interface Book {
 }
 
 export default function BookList() {
+  
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -102,7 +106,10 @@ export default function BookList() {
                     style={styles.searchInput}
                 />
                 <FontAwesome5 name="search" size={20} color="black" style={styles.searchIcon} />
+                <Link href="/carrito">
                 <FontAwesome5 name="shopping-cart" size={20} color="black" style={styles.cartIcon} />
+                </Link>
+
             </View>
 
             <ScrollView
@@ -140,7 +147,7 @@ export default function BookList() {
                     contentContainerStyle={styles.bookList}
                 />
             )}
-
+      
             {/* Modal */}
             <Modal
                 visible={isModalVisible}
