@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, Alert } from 'react-native';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import React, { useContext, useEffect, useState } from 'react';
 import { Button, TextInput } from 'react-native-paper';
@@ -66,35 +66,43 @@ export default function NewBookPost() {
 
     const handleSavePost = async () => {
         if (currentPhoto) {
-            const storage = getStorage();
-            const storageRef = ref(storage, `images/${currentPhoto.uri.split('/').pop()}`);
-            const response = await fetch(currentPhoto.uri);
-            const blob = await response.blob();
+            try {
+                const storage = getStorage();
+                const storageRef = ref(storage, `images/${currentPhoto.uri.split('/').pop()}`);
+                const response = await fetch(currentPhoto.uri);
+                const blob = await response.blob();
 
-            await uploadBytes(storageRef, blob);
-            const downloadURL = await getDownloadURL(storageRef);
+                await uploadBytes(storageRef, blob);
+                const downloadURL = await getDownloadURL(storageRef);
 
-            await addDoc(collection(db, "books"), {
-                userId: auth.currentUser?.uid,
-                title,
-                category,
-                price,
-                address: locationText,
-                description,
-                image: downloadURL,
-                date: new Date()
-            });
+                await addDoc(collection(db, "books"), {
+                    userId: auth.currentUser?.uid,
+                    title,
+                    category,
+                    price,
+                    address: locationText,
+                    description,
+                    image: downloadURL,
+                    date: new Date()
+                });
 
-            console.log('Libro guardado en Firestore:', {
-                userId: auth.currentUser?.uid,
-                title,
-                category,
-                price,
-                address: locationText,
-                description,
-                image: downloadURL,
-                date: new Date()
-            });
+                // Mostrar alerta de éxito
+                Alert.alert('Éxito', 'El libro se ha publicado correctamente.');
+
+                // Reiniciar los campos del formulario
+                setCurrentPhoto(undefined);
+                setTitle('');
+                setCategory('');
+                setPrice('');
+                setDescription('');
+                setLocationText('');
+
+            } catch (error) {
+                console.error('Error al guardar el libro:', error);
+                Alert.alert('Error', 'Hubo un problema al publicar el libro. Inténtalo de nuevo.');
+            }
+        } else {
+            Alert.alert('Advertencia', 'Por favor, sube una foto antes de publicar el libro.');
         }
     };
 
