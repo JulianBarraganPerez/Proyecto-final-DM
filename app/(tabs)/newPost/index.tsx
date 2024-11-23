@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, Alert } from 'react-native';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import React, { useContext, useEffect, useState } from 'react';
-import { Button, TextInput } from 'react-native-paper';
+import { Button, TextInput, RadioButton } from 'react-native-paper'; // Importar RadioButton
 import ModalCamera from '@/components/ModalCamera';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
@@ -18,6 +18,7 @@ export default function NewBookPost() {
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("");
     const [price, setPrice] = useState("");
+    const [bookState, setBookState] = useState("nuevo"); // Estado del libro (nuevo o usado)
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [locationText, setLocationText] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
@@ -80,6 +81,7 @@ export default function NewBookPost() {
                     title,
                     category,
                     price,
+                    bookState, // Guardar el estado del libro
                     address: locationText,
                     description,
                     image: downloadURL,
@@ -96,6 +98,7 @@ export default function NewBookPost() {
                 setPrice('');
                 setDescription('');
                 setLocationText('');
+                setBookState("nuevo"); // Reiniciar estado del libro
 
             } catch (error) {
                 console.error('Error al guardar el libro:', error);
@@ -219,6 +222,12 @@ export default function NewBookPost() {
                 value={price}
                 style={{ borderRadius: 10 }}
             />
+
+            <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>Estado del libro</Text>
+            <RadioButton.Group onValueChange={value => setBookState(value)} value={bookState}>
+                <RadioButton.Item label="Nuevo" value="nuevo" />
+                <RadioButton.Item label="Usado" value="usado" />
+            </RadioButton.Group>
 
             <TextInput
                 label="Descripción"
