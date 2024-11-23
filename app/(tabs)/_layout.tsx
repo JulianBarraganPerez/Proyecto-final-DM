@@ -20,13 +20,7 @@ export default function _layout() {
                         tabBarIcon: ({ color, size }) => (<FontAwesome5 name="home" size={size} color={color} />)
                     }}
                 />
-                <Tabs.Screen
-                    name='ofertas'
-                    options={{
-                        title: "Ofertas",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="percent" size={size} color={color} />)
-                    }}
-                />
+                
                 <Tabs.Screen
                     name='newPost'
                     options={{
@@ -35,6 +29,13 @@ export default function _layout() {
                     }}
                 />
                 <Tabs.Screen
+                    name='profile'
+                    options={{
+                        title: "Perfil",
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="user-circle" size={size} color={color} />)
+                    }}
+                />
+                 <Tabs.Screen
                     name='favoritos'
                     options={{
                         title: "Favoritos",
@@ -42,10 +43,10 @@ export default function _layout() {
                     }}
                 />
                 <Tabs.Screen
-                    name='profile'
+                    name='ofertas'
                     options={{
-                        title: "Perfil",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="user-circle" size={size} color={color} />)
+                        title: "Ofertas",
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="percent" size={size} color={color} />)
                     }}
                 />
             </Tabs>
