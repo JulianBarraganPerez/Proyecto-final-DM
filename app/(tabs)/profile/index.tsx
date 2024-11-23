@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Button, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { db, auth } from "@/utils/firebaseConfig";
+import { Link } from 'expo-router';
+import { db, auth } from "@/utils/firebaseConfig"; 
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface User {
@@ -24,12 +25,10 @@ export default function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch user and posts on mount
   useEffect(() => {
     fetchUserData();
   }, []);
 
-  // Fetch user data
   const fetchUserData = async () => {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
@@ -51,7 +50,6 @@ export default function Profile() {
     }
   };
 
-  // Fetch posts created by the user
   const fetchUserPosts = async (userId: string) => {
     setLoading(true);
     try {
@@ -59,47 +57,36 @@ export default function Profile() {
       const q = query(postsRef, where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
 
-      const userPosts: Post[] = querySnapshot.docs.map((doc) => {
+      const userPosts: Post[] = [];
+      querySnapshot.forEach((doc) => {
         const data = doc.data();
-        return {
+        userPosts.push({
           id: doc.id,
-          image: data.image || '', // Fallback if image is missing
-          description: data.description || 'Sin descripción',
-          title: data.title || 'Sin título',
-          category: data.category || 'Sin categoría',
-          price: data.price || 'No disponible',
-          location: data.address || 'Sin ubicación',
-          date: data.date?.toDate().toLocaleDateString() || 'Fecha desconocida',
-        };
+          image: data.image,
+          description: data.description,
+          title: data.title || "",
+          category: data.category || "",
+          price: data.price || "",
+          location: data.address || "",
+          date: data.date?.toDate().toLocaleDateString() || "",
+        });
       });
 
+      console.log('Publicaciones del usuario:', userPosts); 
       setPosts(userPosts);
     } catch (error) {
-      console.error('Error al recuperar publicaciones:', error);
+      console.error('Error al recuperar publicaciones:', error); 
     }
     setLoading(false);
   };
 
-  // Refresh posts
   const handleRefreshPosts = async () => {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
+      await fetchUserData(); 
       fetchUserPosts(userId);
     }
   };
-
-  // Render a single post
-  const renderPost = ({ item }: { item: Post }) => (
-    <View style={styles.postContainer}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.category}>Categoría: {item.category}</Text>
-      <Text style={styles.price}>Precio: {item.price}</Text>
-      <Text style={styles.location}>Ubicación: {item.location}</Text>
-      <Text style={styles.date}>Fecha: {item.date}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-    </View>
-  );
 
   return (
     <View style={styles.container}>
@@ -118,20 +105,32 @@ export default function Profile() {
             <Text style={styles.refreshButtonText}>Recargar Posts</Text>
           </TouchableOpacity>
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#007AFF" />
-          ) : (
-            <FlatList
-              data={posts}
-              keyExtractor={(item) => item.id}
-              renderItem={renderPost}
-              ListEmptyComponent={<Text>No hay posts aún</Text>}
-            />
-          )}
+          <FlatList
+            data={posts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.postContainer}>
+                <Image source={{ uri: item.image }} style={styles.image} />
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.category}>Categoría: {item.category}</Text>
+                <Text style={styles.price}>Precio: {item.price}</Text>
+                <Text style={styles.location}>Ubicación: {item.location}</Text>
+                <Text style={styles.date}>Fecha: {item.date}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+              </View>
+            )}
+            ListEmptyComponent={<Text>No hay posts aún</Text>}
+          />
         </>
       ) : (
         <Text>Cargando...</Text>
       )}
+      <Link href="/(tabs)/profile/settings" asChild>
+        <Button title="Settings" />
+      </Link>
+      <Link href="/(tabs)/profile/editProfile" asChild>
+        <Button title="Edit Profile" />
+      </Link>
     </View>
   );
 }
