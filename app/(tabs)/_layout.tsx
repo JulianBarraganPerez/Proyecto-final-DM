@@ -1,6 +1,6 @@
-import { View, Text } from 'react-native'
-import React from 'react'
-import { Tabs } from 'expo-router'
+import { View, Text } from 'react-native';
+import React from 'react';
+import { Tabs } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { DataProvider } from '@/dataContext/DataContext';
 
@@ -12,7 +12,7 @@ export default function _layout() {
                     tabBarActiveTintColor: "blue",
                     headerShown: false
                 }}
-                >
+            >
                 <Tabs.Screen
                     name='home'
                     options={{
@@ -21,34 +21,34 @@ export default function _layout() {
                     }}
                 />
                 <Tabs.Screen
-                    name='search'
+                    name='ofertas'
                     options={{
-                        title: "Buscar",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="search" size={size} color={color} />)
+                        title: "Ofertas",
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="percent" size={size} color={color} />)
                     }}
                 />
                 <Tabs.Screen
                     name='newPost'
                     options={{
                         title: "Nuevo Post",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="plus-circle" size={size} color={color} />)
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="edit" size={size} color={color} />)
                     }}
                 />
                 <Tabs.Screen
-                    name='reels'
+                    name='favoritos'
                     options={{
-                        title: "Reels",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="photo-video" size={size} color={color} />)
+                        title: "Favoritos",
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="heart" size={size} color={color} />)
                     }}
                 />
                 <Tabs.Screen
                     name='profile'
                     options={{
                         title: "Perfil",
-                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="user-alt" size={size} color={color} />)
+                        tabBarIcon: ({ color, size }) => (<FontAwesome5 name="user-circle" size={size} color={color} />)
                     }}
                 />
             </Tabs>
         </DataProvider>
-    )
+    );
 }
