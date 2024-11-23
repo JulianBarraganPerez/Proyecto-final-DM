@@ -9,24 +9,32 @@ import {
     TouchableOpacity,
     Image,
     ActivityIndicator,
+    Modal,
+    Button,
 } from 'react-native';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/utils/firebaseConfig';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// Definición de la interfaz Book
 interface Book {
     id: string;
     title: string;
     price: string;
     image: string;
+    address: string;
+    bookState: string;
+    category: string;
+    date: string;
+    description: string;
 }
 
 export default function BookList() {
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    // Categorías para los géneros
     const categories = [
         "Romance",
         "Sci-Fi",
@@ -42,7 +50,6 @@ export default function BookList() {
     ];
 
     useEffect(() => {
-        // Configurar la referencia a la colección y escuchar cambios en tiempo real
         const q = query(collection(db, 'books'), orderBy('date', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedBooks: Book[] = snapshot.docs.map((doc) => ({
@@ -50,26 +57,45 @@ export default function BookList() {
                 title: doc.data().title,
                 price: doc.data().price,
                 image: doc.data().image,
+                address: doc.data().address,
+                bookState: doc.data().bookState,
+                category: doc.data().category,
+                date: doc.data().date.toDate().toString(),
+                description: doc.data().description,
             }));
             setBooks(fetchedBooks);
             setLoading(false);
         });
 
-        // Limpiar la suscripción al desmontar el componente
         return () => unsubscribe();
     }, []);
 
+    const openModal = (book: Book) => {
+        setSelectedBook(book);
+        setIsModalVisible(true);
+    };
+
+    const closeModal = () => {
+        setSelectedBook(null);
+        setIsModalVisible(false);
+    };
+
+    const filteredBooks = selectedCategory
+        ? books.filter((book) => book.category === selectedCategory)
+        : books;
+
     const renderBook = ({ item }: { item: Book }) => (
         <View style={styles.bookCard}>
-            <Image source={{ uri: item.image }} style={styles.bookImage} />
-            <Text style={styles.bookTitle}>{item.title}</Text>
-            <Text style={styles.bookPrice}>${item.price}</Text>
+            <TouchableOpacity onPress={() => openModal(item)}>
+                <Image source={{ uri: item.image }} style={styles.bookImage} />
+                <Text style={styles.bookTitle}>{item.title}</Text>
+                <Text style={styles.bookPrice}>${item.price}</Text>
+            </TouchableOpacity>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            {/* Barra de búsqueda */}
             <View style={styles.searchBar}>
                 <TextInput
                     placeholder="Buscar en libreríaVirtual"
@@ -79,35 +105,71 @@ export default function BookList() {
                 <FontAwesome5 name="shopping-cart" size={20} color="black" style={styles.cartIcon} />
             </View>
 
-            {/* Carrusel de categorías */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoryCarousel}
             >
                 {categories.map((category, index) => (
-                    <TouchableOpacity key={index} style={styles.categoryCircle}>
+                    <TouchableOpacity
+                        key={index}
+                        style={[
+                            styles.categoryCircle,
+                            selectedCategory === category && styles.categoryCircleSelected,
+                        ]}
+                        onPress={() =>
+                            setSelectedCategory(selectedCategory === category ? null : category)
+                        }
+                    >
                         <Text style={styles.categoryText}>{category}</Text>
                     </TouchableOpacity>
                 ))}
             </ScrollView>
 
-            {/* Lista de libros */}
-            <Text style={styles.sectionTitle}>Para ti</Text>
+            <Text style={styles.sectionTitle}>
+                {selectedCategory ? `Categoría: ${selectedCategory}` : "Para ti"}
+            </Text>
             {loading ? (
                 <ActivityIndicator size="large" color="#0000ff" />
             ) : (
                 <FlatList
-                    data={books}
+                    data={filteredBooks}
                     renderItem={renderBook}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
                     contentContainerStyle={styles.bookList}
                 />
             )}
+
+            {/* Modal */}
+            <Modal
+                visible={isModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={closeModal}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        {selectedBook && (
+                            <>
+                                <Image source={{ uri: selectedBook.image }} style={styles.modalImage} />
+                                <Text style={styles.modalTitle}>{selectedBook.title}</Text>
+                                <Text style={styles.modalPrice}>${selectedBook.price}</Text>
+                                <Text style={styles.modalDescription}>{selectedBook.description}</Text>
+                                <Text style={styles.modalDetails}>
+                                    Estado: {selectedBook.bookState} | Categoría: {selectedBook.category}
+                                </Text>
+                                <Text style={styles.modalDetails}>Ubicación: {selectedBook.address}</Text>
+                                <Button title="Cerrar" onPress={closeModal} />
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -187,4 +249,47 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingBottom: 10,
     },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+        alignItems: 'center',
+    },
+    modalImage: {
+        width: '100%',
+        height: 200,
+        resizeMode: 'cover',
+        marginBottom: 10,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    modalPrice: {
+        fontSize: 18,
+        color: '#2a9d8f',
+        marginBottom: 10,
+    },
+    modalDescription: {
+        fontSize: 14,
+        color: '#333',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    modalDetails: {
+        fontSize: 12,
+        color: '#555',
+        marginBottom: 5,
+    },
+    categoryCircleSelected: {
+      backgroundColor: '#2a9d8f',
+  },
 });
