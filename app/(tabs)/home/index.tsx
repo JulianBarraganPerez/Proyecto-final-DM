@@ -1,198 +1,190 @@
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
-import { db } from "@/utils/firebaseConfig";
-import { collection, getDocs, orderBy, query, where, Timestamp } from 'firebase/firestore';
-import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    FlatList,
+    TextInput,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Image,
+    ActivityIndicator,
+} from 'react-native';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/utils/firebaseConfig';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-interface Post {
-  id: string;
-  image: string;
-  description: string;
-  userId: string;
-  date: { seconds: number, nanoseconds: number };
+// Definición de la interfaz Book
+interface Book {
+    id: string;
+    title: string;
+    price: string;
+    image: string;
 }
 
-export default function Home() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+export default function BookList() {
+    const [books, setBooks] = useState<Book[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const fetchAllPosts = async (order: 'desc' | 'asc') => {
-    try {
-      const postsRef = collection(db, 'posts');
-      const q = query(postsRef, orderBy('date', order));
-      const querySnapshot = await getDocs(q);
+    // Categorías para los géneros
+    const categories = [
+        "Romance",
+        "Sci-Fi",
+        "Medieval",
+        "Manga",
+        "Comics",
+        "Drama",
+        "Terror",
+        "Fantasía",
+        "Aventura",
+        "Histórico",
+        "Educativo",
+    ];
 
-      const allPosts: Post[] = [];
-      querySnapshot.forEach((doc) => {
-        allPosts.push({ id: doc.id, ...doc.data() } as Post);
-      });
+    useEffect(() => {
+        // Configurar la referencia a la colección y escuchar cambios en tiempo real
+        const q = query(collection(db, 'books'), orderBy('date', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedBooks: Book[] = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                title: doc.data().title,
+                price: doc.data().price,
+                image: doc.data().image,
+            }));
+            setBooks(fetchedBooks);
+            setLoading(false);
+        });
 
-      console.log('Todos los posts:', allPosts);
-      setPosts(allPosts);
-    } catch (error) {
-      console.error('Error al obtener todos los posts:', error);
-    }
-  };
+        // Limpiar la suscripción al desmontar el componente
+        return () => unsubscribe();
+    }, []);
 
-  const fetchPostsByDate = async (date: Date) => {
-    try {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
+    const renderBook = ({ item }: { item: Book }) => (
+        <View style={styles.bookCard}>
+            <Image source={{ uri: item.image }} style={styles.bookImage} />
+            <Text style={styles.bookTitle}>{item.title}</Text>
+            <Text style={styles.bookPrice}>${item.price}</Text>
+        </View>
+    );
 
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+    return (
+        <View style={styles.container}>
+            {/* Barra de búsqueda */}
+            <View style={styles.searchBar}>
+                <TextInput
+                    placeholder="Buscar en libreríaVirtual"
+                    style={styles.searchInput}
+                />
+                <FontAwesome5 name="search" size={20} color="black" style={styles.searchIcon} />
+                <FontAwesome5 name="shopping-cart" size={20} color="black" style={styles.cartIcon} />
+            </View>
 
-      const postsRef = collection(db, 'posts');
-      const q = query(
-        postsRef,
-        where('date', '>=', Timestamp.fromDate(startOfDay)),
-        where('date', '<=', Timestamp.fromDate(endOfDay))
-      );
+            {/* Carrusel de categorías */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryCarousel}
+            >
+                {categories.map((category, index) => (
+                    <TouchableOpacity key={index} style={styles.categoryCircle}>
+                        <Text style={styles.categoryText}>{category}</Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
 
-      const querySnapshot = await getDocs(q);
-      const filteredPosts: Post[] = [];
-      querySnapshot.forEach((doc) => {
-        filteredPosts.push({ id: doc.id, ...doc.data() } as Post);
-      });
-
-      console.log('Posts filtrados por fecha:', filteredPosts);
-      setPosts(filteredPosts);
-    } catch (error) {
-      console.error('Error al filtrar posts por fecha:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllPosts(sortOrder);
-  }, [sortOrder]);
-
-  const handlePressPost = (post: Post) => {
-    router.push({
-      pathname: "/(tabs)/home/postDetails/[id]",
-      params: { id: post.id },
-    });
-  };
-
-  const handleDateChange = (event: any, date?: Date) => {
-    setShowDatePicker(false);
-    if (date) {
-      setSelectedDate(date);
-      fetchPostsByDate(date);
-    }
-  };
-
-  const resetToAllPosts = () => {
-    setSelectedDate(null);
-    fetchAllPosts(sortOrder);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Posts</Text>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          onPress={() => setSortOrder('desc')}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>Más recientes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSortOrder('asc')}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>Más antiguos</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>Seleccionar fecha</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={resetToAllPosts}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>Mostrar todos</Text>
-        </TouchableOpacity>
-      </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate || new Date()}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
-
-      {posts.length === 0 ? (
-        <Text>No hay posts disponibles</Text>
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handlePressPost(item)}>
-              <View style={styles.postContainer}>
-                <Image source={{ uri: item.image }} style={styles.image} />
-                <Text style={styles.description}>{item.description}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-    </View>
-  );
+            {/* Lista de libros */}
+            <Text style={styles.sectionTitle}>Para ti</Text>
+            {loading ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+                <FlatList
+                    data={books}
+                    renderItem={renderBook}
+                    keyExtractor={(item) => item.id}
+                    numColumns={2}
+                    contentContainerStyle={styles.bookList}
+                />
+            )}
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 10,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  postContainer: {
-    marginBottom: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#f8f8f8',
-    padding: 8,
-  },
-  image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-  },
-  description: {
-    marginTop: 8,
-    fontSize: 16,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#f9f9f9',
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+    },
+    searchInput: {
+        flex: 1,
+        backgroundColor: '#f1f1f1',
+        borderRadius: 10,
+        padding: 10,
+        marginRight: 10,
+    },
+    searchIcon: {
+        marginRight: 15,
+    },
+    cartIcon: {
+        marginRight: 10,
+    },
+    categoryCarousel: {
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+    },
+    categoryCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#dedede',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 5,
+    },
+    categoryText: {
+        fontSize: 10,
+        textAlign: 'center',
+        color: '#333',
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginVertical: 10,
+        paddingHorizontal: 10,
+    },
+    bookList: {
+        paddingHorizontal: 10,
+    },
+    bookCard: {
+        flex: 1,
+        margin: 5,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        overflow: 'hidden',
+        elevation: 3,
+    },
+    bookImage: {
+        width: '100%',
+        height: 150,
+        resizeMode: 'cover',
+    },
+    bookTitle: {
+        fontWeight: 'bold',
+        fontSize: 14,
+        padding: 10,
+        color: '#333',
+    },
+    bookPrice: {
+        fontSize: 14,
+        color: '#2a9d8f',
+        paddingHorizontal: 10,
+        paddingBottom: 10,
+    },
 });
-

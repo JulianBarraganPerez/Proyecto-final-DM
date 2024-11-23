@@ -12,7 +12,7 @@ export default function RootLayout() {
         options={{
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Instagram</Text>
+              <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Libreria Virtual</Text>
               <Link href="/(tabs)/home/message" asChild>
                 <TouchableOpacity>
                   <Icon name="chatbubble-outline" size={24} style={{ marginLeft: 15 }} />
