@@ -34,6 +34,7 @@ export default function NewBookPost() {
         "Fantasia",
         "Aventura",
         "Histórico",
+        "Educativo",
     ];
 
     useEffect(() => {
