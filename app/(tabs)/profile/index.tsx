@@ -18,6 +18,7 @@ interface Post {
   price: string;
   location: string;
   date: string;
+  bookStatus: string; // Agregado para el estado del libro
 }
 
 export default function Profile() {
@@ -69,6 +70,7 @@ export default function Profile() {
           price: data.price || "",
           location: data.address || "",
           date: data.date?.toDate().toLocaleDateString() || "",
+          bookStatus: data.bookStatus || "No especificado", // Asignación del estado del libro
         });
       });
 
@@ -116,6 +118,7 @@ export default function Profile() {
                 <Text style={styles.price}>Precio: {item.price}</Text>
                 <Text style={styles.location}>Ubicación: {item.location}</Text>
                 <Text style={styles.date}>Fecha: {item.date}</Text>
+                <Text style={styles.bookStatus}>Estado: {item.bookStatus}</Text> {/* Mostrando el estado del libro */}
                 <Text style={styles.description}>{item.description}</Text>
               </View>
             )}
@@ -205,6 +208,10 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
     color: 'gray',
+  },
+  bookStatus: {
+    fontSize: 16,
+    color: 'green',
   },
   description: {
     marginTop: 8,
