@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    FlatList,
-    TextInput,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    Image,
-    ActivityIndicator,
-    Modal,
-    Button,
-    Alert,
-} from 'react-native';
-import { 
-    collection, 
-    onSnapshot, 
-    query, 
-    orderBy, 
-    doc, 
-    updateDoc, 
-    getDoc, 
-    setDoc 
-} from 'firebase/firestore';
-import { db, auth } from '@/utils/firebaseConfig';
-import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
+import { auth, db } from '@/utils/firebaseConfig';
+import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import {
+    collection,
+    doc,
+    getDoc,
+    onSnapshot,
+    orderBy,
+    query,
+    setDoc,
+    updateDoc
+} from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Button,
+    FlatList,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { Button as PaperButton } from 'react-native-paper';
 
 interface Book {
     id: string;
@@ -227,6 +228,15 @@ export default function BookList() {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
+
+<PaperButton
+    icon="robot"
+    mode="contained"
+    style={{ borderRadius: 10, marginTop: 20 }} 
+>
+    <Link href="/(tabs)/home/Geminis">Asistente Géminis</Link>
+</PaperButton>
+
 
             <Text style={styles.sectionTitle}>
                 {selectedCategory ? `Categoría: ${selectedCategory}` : "Para ti"}
