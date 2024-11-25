@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { DataProvider } from '@/dataContext/DataContext';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { Tabs } from 'expo-router';
 
 export default function _layout() {
     return (
@@ -32,7 +32,7 @@ export default function _layout() {
                 <Tabs.Screen
                     name="profile"
                     options={{
-                        title: "Perfil",
+                        title: "perfil",
                         tabBarIcon: ({ color, size }) => (
                             <FontAwesome5 name="user-circle" size={size} color={color} />
                         ),

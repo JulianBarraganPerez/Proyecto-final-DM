@@ -1,7 +1,7 @@
-import { Stack } from "expo-router";
-import "../utils/firebaseConfig";
 import { AuthProvider } from "@/context/AuthContext";
+import { Stack } from "expo-router";
 import { PaperProvider } from "react-native-paper";
+import "../utils/firebaseConfig";
 
 export default function RootLayout() {
 
