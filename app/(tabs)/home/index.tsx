@@ -50,8 +50,9 @@ export default function BookList() {
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
-    const [cart, setCart] = useState<Book[]>([]);
+    const [cartItems, setCartItems] = useState<Book[]>([]);
     const [quantity, setQuantity] = useState(1); // Nueva cantidad seleccionada
+    const [searchText, setSearchText] = useState('');
 
     const categories = [
         "Romance",
@@ -106,11 +107,19 @@ export default function BookList() {
     }, [selectedCategory, books]);
 
     const loadCart = async (uid: string) => {
-        const cartRef = doc(db, 'carts', uid);
-        const cartDoc = await getDoc(cartRef);
+        try {
+            const cartRef = doc(db, 'carts', uid);
+            const cartDoc = await getDoc(cartRef);
 
-        if (cartDoc.exists()) {
-            setCart(cartDoc.data().items || []);
+            if (cartDoc.exists()) {
+                const itemsFromFirebase = cartDoc.data().items || [];
+                setCartItems(itemsFromFirebase);
+            } else {
+                setCartItems([]);
+            }
+        } catch (error) {
+            console.error("Error al cargar el carrito: ", error);
+            Alert.alert("Error", "No se pudo cargar el carrito.");
         }
     };
 
@@ -119,29 +128,27 @@ export default function BookList() {
         await setDoc(cartRef, { items: updatedCart });
     };
 
-    const addToCart = (book: Book, quantity: number) => {
+    const addToCart = async (book: Book, quantity: number) => {
         if (!userId) {
-            Alert.alert('Error', 'Por favor inicia sesión para añadir libros al carrito.');
+            Alert.alert("Error", "Por favor inicia sesión para agregar al carrito.");
             return;
         }
 
-        const existingBookIndex = cart.findIndex((item) => item.id === book.id);
-
-        let updatedCart;
+        const updatedCart = [...cartItems];
+        const existingBookIndex = updatedCart.findIndex((item) => item.id === book.id);
 
         if (existingBookIndex !== -1) {
-            updatedCart = cart.map((item, index) =>
-                index === existingBookIndex
-                    ? { ...item, quantity: (item.quantity || 0) + quantity }
-                    : item
-            );
+            // Actualiza la cantidad si el libro ya está en el carrito
+            updatedCart[existingBookIndex].quantity =
+                (updatedCart[existingBookIndex].quantity || 0) + quantity;
         } else {
-            updatedCart = [...cart, { ...book, quantity }];
+            // Agrega el nuevo libro al carrito
+            updatedCart.push({ ...book, quantity });
         }
 
-        setCart(updatedCart);
-        saveCart(userId, updatedCart);
-        Alert.alert('Éxito', `Se añadieron ${quantity} unidades de "${book.title}" al carrito.`);
+        setCartItems(updatedCart);
+        await saveCart(userId, updatedCart); // Sincroniza con Firebase
+        Alert.alert("Éxito", "Libro agregado al carrito.");
     };
 
     const toggleLike = async (book: Book) => {
@@ -193,19 +200,28 @@ export default function BookList() {
         );
     };
 
+    const handleSearch = (text: string) => {
+        setSearchText(text);
+        const filtered = books.filter((book) =>
+            book.title.toLowerCase().includes(text.toLowerCase()) || 
+            book.description.toLowerCase().includes(text.toLowerCase())
+        );
+        setFilteredBooks(filtered);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.searchBar}>
                 <TextInput
                     placeholder="Buscar en libreríaVirtual"
                     style={styles.searchInput}
+                    value={searchText}
+                    onChangeText={handleSearch}
                 />
                 <FontAwesome5 name="search" size={20} color="black" style={styles.searchIcon} />
                 <Link href="/home/carrito">
-    <FontAwesome5 name="shopping-cart" size={20} color="black" style={styles.cartIcon} />
-</Link>
-
-
+                    <FontAwesome5 name="shopping-cart" size={20} color="black" style={styles.cartIcon} />
+                </Link>
             </View>
 
             <ScrollView
@@ -229,14 +245,13 @@ export default function BookList() {
                 ))}
             </ScrollView>
 
-<PaperButton
-    icon="robot"
-    mode="contained"
-    style={{ borderRadius: 10, marginTop: 20 }} 
->
-    <Link href="/(tabs)/home/Geminis">Asistente Géminis</Link>
-</PaperButton>
-
+            <PaperButton
+                icon="robot"
+                mode="contained"
+                style={{ borderRadius: 10, marginTop: 20 }}
+            >
+                <Link href="/(tabs)/home/Geminis">Asistente Géminis</Link>
+            </PaperButton>
 
             <Text style={styles.sectionTitle}>
                 {selectedCategory ? `Categoría: ${selectedCategory}` : "Para ti"}
@@ -267,25 +282,22 @@ export default function BookList() {
                                 <Text style={styles.modalTitle}>{selectedBook.title}</Text>
                                 <Text style={styles.modalPrice}>${selectedBook.price}</Text>
                                 <Text style={styles.modalDescription}>{selectedBook.description}</Text>
-
-                                {/* Selector de cantidad */}
-                                <View style={styles.quantitySelector}>
-                                    <TouchableOpacity
-                                        onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                                    >
-                                        <Text style={styles.quantityButton}>-</Text>
-                                    </TouchableOpacity>
-                                    <Text style={styles.quantityText}>{quantity}</Text>
-                                    <TouchableOpacity onPress={() => setQuantity(quantity + 1)}>
-                                        <Text style={styles.quantityButton}>+</Text>
-                                    </TouchableOpacity>
+                                <View style={styles.quantityContainer}>
+                                    <Text>Cantidad:</Text>
+                                    <TextInput
+                                        style={styles.quantityInput}
+                                        keyboardType="number-pad"
+                                        value={quantity.toString()}
+                                        onChangeText={(value) => setQuantity(parseInt(value) || 1)}
+                                    />
                                 </View>
-
                                 <Button
                                     title="Agregar al carrito"
                                     onPress={() => {
-                                        addToCart(selectedBook, quantity);
-                                        closeModal();
+                                        if (selectedBook) {
+                                            addToCart(selectedBook, quantity);
+                                            closeModal();
+                                        }
                                     }}
                                 />
                                 <Button title="Cerrar" onPress={closeModal} />
@@ -448,4 +460,24 @@ const styles = StyleSheet.create({
       shadowRadius: 4,
       elevation: 5,
   },
+  cartButtonText: {
+      fontSize: 16,
+      color: '#2a9d8f',
+  },
+  quantityButtonSelected: {
+      color: '#fff',
+      backgroundColor: '#2a9d8f',
+  },
+  quantityContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 10,
+  },
+  quantityInput: {
+      fontSize: 24,
+      color: '#2a9d8f',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+  },
+  
 });

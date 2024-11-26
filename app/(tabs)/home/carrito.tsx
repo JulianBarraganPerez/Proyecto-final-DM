@@ -7,9 +7,11 @@ import {
     Image,
     TouchableOpacity,
     Alert,
+    TextInput,
     ActivityIndicator,
+    Button,
 } from 'react-native';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/utils/firebaseConfig';
 import { FontAwesome } from '@expo/vector-icons';
 
@@ -23,48 +25,158 @@ interface Book {
 export default function CartView() {
     const [cartItems, setCartItems] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
+    const [address, setAddress] = useState('');
+    const [cardNumber, setCardNumber] = useState('');
+    const [expiryDate, setExpiryDate] = useState('');
+    const [cvc, setCVC] = useState('');
+    const [savedData, setSavedData] = useState<{ address: string; cardNumber: string; expiryDate: string; cvc: string } | null>(null);
     const userId = auth.currentUser?.uid;
 
     useEffect(() => {
         if (userId) {
-            loadCart(userId);
+            const cartRef = doc(db, 'carts', userId);
+            const unsubscribe = onSnapshot(
+                cartRef,
+                (docSnap) => {
+                    if (docSnap.exists()) {
+                        const items = docSnap.data().items || [];
+                        setCartItems(items);
+                    } else {
+                        setCartItems([]);
+                    }
+                    setLoading(false); // Detener el indicador de carga
+                },
+                (error) => {
+                    console.error('Error fetching cart:', error);
+                    Alert.alert('Error', 'No se pudo cargar el carrito.');
+                    setLoading(false); // Detener el indicador de carga en caso de error
+                }
+            );
+
+            loadSavedData(userId);
+
+            return () => unsubscribe(); // Limpieza al desmontar el componente
         } else {
             Alert.alert('Error', 'Por favor inicia sesión para ver tu carrito.');
+            setLoading(false); // Detener el indicador de carga si no hay usuario
         }
     }, [userId]);
 
-    const loadCart = async (uid: string) => {
+    const loadSavedData = async (uid: string) => {
         try {
-            const cartRef = doc(db, 'carts', uid);
-            const cartDoc = await getDoc(cartRef);
+            const userRef = doc(db, 'users', uid);
+            const userDoc = await getDoc(userRef);
 
-            if (cartDoc.exists()) {
-                const data = cartDoc.data();
-                setCartItems(data.items || []);
-            } else {
-                setCartItems([]);
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                setSavedData({
+                    address: data.address || '',
+                    cardNumber: data.cardNumber || '',
+                    expiryDate: data.expiryDate || '',
+                    cvc: data.cvc || '',
+                });
             }
         } catch (error) {
-            Alert.alert('Error', 'No se pudo cargar el carrito.');
+            Alert.alert('Error', 'No se pudieron cargar los datos guardados.');
             console.error(error);
-        } finally {
-            setLoading(false);
         }
     };
 
-    const removeFromCart = async (bookId: string) => {
+    const removeFromCart = async (itemId: string) => {
         if (!userId) return;
 
-        const updatedCart = cartItems.filter((item) => item.id !== bookId);
-        setCartItems(updatedCart);
+        const updatedCart = cartItems.filter((item) => item.id !== itemId);
 
         try {
             const cartRef = doc(db, 'carts', userId);
             await updateDoc(cartRef, { items: updatedCart });
+            setCartItems(updatedCart); // Actualiza el estado tras éxito en Firebase
             Alert.alert('Éxito', 'Libro eliminado del carrito.');
         } catch (error) {
             Alert.alert('Error', 'No se pudo eliminar el libro del carrito.');
             console.error(error);
+        }
+    };
+
+    const saveData = async () => {
+        if (!userId) return;
+
+        try {
+            const userRef = doc(db, 'users', userId);
+            await setDoc(userRef, { address, cardNumber, expiryDate, cvc }, { merge: true });
+            Alert.alert('Éxito', 'Datos guardados correctamente.');
+        } catch (error) {
+            Alert.alert('Error', 'No se pudieron guardar los datos.');
+            console.error(error);
+        }
+    };
+
+    const handlePlaceOrder = async () => {
+        if (!userId) {
+            Alert.alert('Error', 'Debes iniciar sesión para realizar un pedido.');
+            return;
+        }
+
+        if (!address || !cardNumber || !expiryDate || !cvc) {
+            Alert.alert('Error', 'Por favor completa todos los campos de pago y dirección.');
+            return;
+        }
+
+        if (cardNumber !== '4242424242424242') {
+            Alert.alert('Error', 'Número de tarjeta inválido. Usa una tarjeta genérica de Stripe.');
+            return;
+        }
+
+        try {
+            // Crear el pedido
+            const order = {
+                userId,
+                items: cartItems,
+                address,
+                paymentStatus: 'Pago simulado',
+                date: new Date().toISOString(),
+            };
+
+            const orderRef = doc(db, 'orders', `${userId}_${Date.now()}`);
+            await setDoc(orderRef, order);
+
+            // Vaciar el carrito en Firebase
+            const cartRef = doc(db, 'carts', userId);
+            await setDoc(cartRef, { items: [] });
+
+            // Actualiza el estado local
+            setCartItems([]);
+            setAddress('');
+            setCardNumber('');
+            setExpiryDate('');
+            setCVC('');
+
+            Alert.alert(
+                'Éxito',
+                'Pedido realizado con éxito. ¿Deseas guardar tus datos para la próxima vez?',
+                [
+                    {
+                        text: 'No',
+                        style: 'cancel',
+                    },
+                    {
+                        text: 'Sí',
+                        onPress: () => saveData(),
+                    },
+                ]
+            );
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo realizar el pedido.');
+            console.error(error);
+        }
+    };
+
+    const handleUseSavedData = () => {
+        if (savedData) {
+            setAddress(savedData.address);
+            setCardNumber(savedData.cardNumber);
+            setExpiryDate(savedData.expiryDate);
+            setCVC(savedData.cvc);
         }
     };
 
@@ -92,12 +204,46 @@ export default function CartView() {
             ) : cartItems.length === 0 ? (
                 <Text style={styles.emptyCartText}>Tu carrito está vacío.</Text>
             ) : (
-                <FlatList
-                    data={cartItems}
-                    renderItem={renderCartItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.cartList}
-                />
+                <>
+                    <FlatList
+                        data={cartItems}
+                        renderItem={renderCartItem}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.cartList}
+                    />
+                    {savedData && (
+                        <Button title="Usar datos guardados" onPress={handleUseSavedData} />
+                    )}
+                    <TextInput
+                        placeholder="Dirección de entrega"
+                        value={address}
+                        onChangeText={setAddress}
+                        style={styles.input}
+                    />
+                    <TextInput
+                        placeholder="Número de tarjeta (ejemplo: 4242424242424242)"
+                        value={cardNumber}
+                        onChangeText={setCardNumber}
+                        style={styles.input}
+                        keyboardType="number-pad"
+                    />
+                    <TextInput
+                        placeholder="Fecha de vencimiento (MM/AA)"
+                        value={expiryDate}
+                        onChangeText={setExpiryDate}
+                        style={styles.input}
+                        keyboardType="number-pad"
+                    />
+                    <TextInput
+                        placeholder="CVC"
+                        value={cvc}
+                        onChangeText={setCVC}
+                        style={styles.input}
+                        keyboardType="number-pad"
+                    />
+                    <Button title="Guardar datos para la próxima vez" onPress={saveData} />
+                    <Button title="Simular pago y realizar pedido" onPress={handlePlaceOrder} />
+                </>
             )}
         </View>
     );
@@ -107,12 +253,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f9f9f9',
-        padding: 10,
+        padding: 15,
     },
     title: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: 15,
+        textAlign: 'center',
     },
     cartList: {
         paddingBottom: 20,
@@ -124,13 +271,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 10,
         elevation: 3,
-        padding: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        padding: 15,
     },
     cartItemImage: {
-        width: 60,
-        height: 60,
+        width: 70,
+        height: 70,
         borderRadius: 5,
-        marginRight: 10,
+        marginRight: 15,
     },
     cartItemDetails: {
         flex: 1,
@@ -140,16 +291,20 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     cartItemPrice: {
-        fontSize: 14,
-        color: '#2a9d8f',
-        marginTop: 5,
+        color: '#888',
     },
     removeButton: {
-        padding: 5,
+        marginLeft: 10,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        padding: 10,
+        marginVertical: 10,
     },
     emptyCartText: {
-        fontSize: 16,
-        color: '#888',
+        fontSize: 18,
         textAlign: 'center',
         marginTop: 20,
     },
