@@ -482,5 +482,11 @@ const styles = StyleSheet.create({
       paddingHorizontal: 10,
       paddingVertical: 5,
   },
+  creatorName: {
+    fontSize: 12,
+    color: '#555',
+    paddingHorizontal: 10,
+    paddingTop: 5,
+},
   
 });

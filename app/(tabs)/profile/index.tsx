@@ -131,6 +131,11 @@ export default function Profile() {
           <Button title="Edit Profile" />
         </Link>
       </View>
+      <View style={{ marginVertical: 10 }}>
+        <Link href="/(tabs)/profile/notifications" asChild>
+          <Button title="Notificaciones" />
+        </Link>
+      </View>
     </View>
   );
 }
