@@ -44,14 +44,14 @@ interface Book {
 
 export default function BookList() {
     const [books, setBooks] = useState<Book[]>([]);
-    const [filteredBooks, setFilteredBooks] = useState<Book[]>([]); // Libros filtrados por categoría
+    const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedBook, setSelectedBook] = useState<Book | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const [cartItems, setCartItems] = useState<Book[]>([]);
-    const [quantity, setQuantity] = useState(1); // Nueva cantidad seleccionada
+    const [quantity, setQuantity] = useState(1);
     const [searchText, setSearchText] = useState('');
 
     const categories = [
@@ -90,7 +90,7 @@ export default function BookList() {
                 likedBy: doc.data().likedBy || [],
             }));
             setBooks(fetchedBooks);
-            setFilteredBooks(fetchedBooks); // Inicializar la lista filtrada
+            setFilteredBooks(fetchedBooks);
             setLoading(false);
         });
 
@@ -98,7 +98,6 @@ export default function BookList() {
     }, []);
 
     useEffect(() => {
-        // Filtrar libros por categoría
         if (selectedCategory) {
             setFilteredBooks(books.filter((book) => book.category === selectedCategory));
         } else {
@@ -113,7 +112,10 @@ export default function BookList() {
 
             if (cartDoc.exists()) {
                 const itemsFromFirebase = cartDoc.data().items || [];
-                setCartItems(itemsFromFirebase);
+                setCartItems(itemsFromFirebase.map((item: any) => ({
+                    ...item,
+                    quantity: item.quantity || 1,
+                })));
             } else {
                 setCartItems([]);
             }
@@ -138,16 +140,14 @@ export default function BookList() {
         const existingBookIndex = updatedCart.findIndex((item) => item.id === book.id);
 
         if (existingBookIndex !== -1) {
-            // Actualiza la cantidad si el libro ya está en el carrito
             updatedCart[existingBookIndex].quantity =
                 (updatedCart[existingBookIndex].quantity || 0) + quantity;
         } else {
-            // Agrega el nuevo libro al carrito
             updatedCart.push({ ...book, quantity });
         }
 
         setCartItems(updatedCart);
-        await saveCart(userId, updatedCart); // Sincroniza con Firebase
+        await saveCart(userId, updatedCart);
         Alert.alert("Éxito", "Libro agregado al carrito.");
     };
 
@@ -211,6 +211,7 @@ export default function BookList() {
 
     return (
         <View style={styles.container}>
+            {/* Search Bar */}
             <View style={styles.searchBar}>
                 <TextInput
                     placeholder="Buscar en libreríaVirtual"
@@ -224,6 +225,7 @@ export default function BookList() {
                 </Link>
             </View>
 
+            {/* Categories */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -245,14 +247,6 @@ export default function BookList() {
                 ))}
             </ScrollView>
 
-            <PaperButton
-                icon="robot"
-                mode="contained"
-                style={{ borderRadius: 10, marginTop: 20 }}
-            >
-                <Link href="/(tabs)/home/Geminis">Asistente Géminis</Link>
-            </PaperButton>
-
             <Text style={styles.sectionTitle}>
                 {selectedCategory ? `Categoría: ${selectedCategory}` : "Para ti"}
             </Text>
@@ -267,7 +261,16 @@ export default function BookList() {
                     contentContainerStyle={styles.bookList}
                 />
             )}
+            <PaperButton
+                icon="robot"
+                mode="contained"
+                style={{ borderRadius: 10, marginTop: 20 }}
+            >
+                <Link href="/(tabs)/home/Geminis">Asistente Géminis</Link>
+            </PaperButton>
 
+
+            {/* Modal */}
             <Modal
                 visible={isModalVisible}
                 animationType="slide"
