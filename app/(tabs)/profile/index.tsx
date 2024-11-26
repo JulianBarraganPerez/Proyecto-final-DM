@@ -1,8 +1,8 @@
-import { View, Text, Button, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import { auth, db } from "@/utils/firebaseConfig";
 import { Link } from 'expo-router';
-import { db, auth } from "@/utils/firebaseConfig"; 
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Button, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
 interface User {
   firstname: string;
@@ -14,11 +14,9 @@ interface Post {
   image: string;
   description: string;
   title: string;
-  category: string;
   price: string;
-  location: string;
   date: string;
-  bookStatus: string; // Agregado para el estado del libro
+  likedBy: string[];
 }
 
 export default function Profile() {
@@ -54,40 +52,33 @@ export default function Profile() {
   const fetchUserPosts = async (userId: string) => {
     setLoading(true);
     try {
-      const postsRef = collection(db, 'posts');
+      const postsRef = collection(db, 'books'); // Cambiado a la colección correcta
       const q = query(postsRef, where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
 
       const userPosts: Post[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        const dateObj = data.date?.seconds
+          ? new Date(data.date.seconds * 1000)
+          : null;
+
         userPosts.push({
           id: doc.id,
           image: data.image,
           description: data.description,
-          title: data.title || "",
-          category: data.category || "",
-          price: data.price || "",
-          location: data.address || "",
-          date: data.date?.toDate().toLocaleDateString() || "",
-          bookStatus: data.bookStatus || "No especificado", // Asignación del estado del libro
+          title: data.title,
+          price: data.price,
+          date: dateObj ? dateObj.toLocaleDateString() : 'Sin fecha',
+          likedBy: data.likedBy || [],
         });
       });
 
-      console.log('Publicaciones del usuario:', userPosts); 
       setPosts(userPosts);
     } catch (error) {
-      console.error('Error al recuperar publicaciones:', error); 
+      console.error('Error al recuperar publicaciones:', error);
     }
     setLoading(false);
-  };
-
-  const handleRefreshPosts = async () => {
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
-      await fetchUserData(); 
-      fetchUserPosts(userId);
-    }
   };
 
   return (
@@ -103,10 +94,6 @@ export default function Profile() {
             <Text style={styles.username}>{`${user.firstname} ${user.lastname}`}</Text>
           </View>
 
-          <TouchableOpacity onPress={handleRefreshPosts} style={styles.refreshButton}>
-            <Text style={styles.refreshButtonText}>Recargar Posts</Text>
-          </TouchableOpacity>
-
           <FlatList
             data={posts}
             keyExtractor={(item) => item.id}
@@ -114,26 +101,36 @@ export default function Profile() {
               <View style={styles.postContainer}>
                 <Image source={{ uri: item.image }} style={styles.image} />
                 <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.category}>Categoría: {item.category}</Text>
                 <Text style={styles.price}>Precio: {item.price}</Text>
-                <Text style={styles.location}>Ubicación: {item.location}</Text>
                 <Text style={styles.date}>Fecha: {item.date}</Text>
-                <Text style={styles.bookStatus}>Estado: {item.bookStatus}</Text> {/* Mostrando el estado del libro */}
                 <Text style={styles.description}>{item.description}</Text>
               </View>
             )}
-            ListEmptyComponent={<Text>No hay posts aún</Text>}
+            ListEmptyComponent={<Text>No hay publicaciones para este usuario.</Text>}
+            refreshing={loading}
+            onRefresh={() => fetchUserPosts(auth.currentUser?.uid!)}
           />
         </>
       ) : (
         <Text>Cargando...</Text>
       )}
-      <Link href="/(tabs)/profile/settings" asChild>
-        <Button title="Settings" />
-      </Link>
-      <Link href="/(tabs)/profile/editProfile" asChild>
-        <Button title="Edit Profile" />
-      </Link>
+
+      {/* Botones adicionales */}
+      <View style={{ marginVertical: 10 }}>
+        <Link href="/(tabs)/profile/selectChatUser" asChild>
+          <Button title="Iniciar un chat" />
+        </Link>
+      </View>
+      <View style={{ marginVertical: 10 }}>
+        <Link href="/(tabs)/profile/settings" asChild>
+          <Button title="Settings" />
+        </Link>
+      </View>
+      <View style={{ marginVertical: 10 }}>
+        <Link href="/(tabs)/profile/editProfile" asChild>
+          <Button title="Edit Profile" />
+        </Link>
+      </View>
     </View>
   );
 }
@@ -166,24 +163,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  refreshButton: {
-    backgroundColor: '#007AFF',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  refreshButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   postContainer: {
     marginBottom: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
     backgroundColor: '#f8f8f8',
     padding: 8,
+    borderRadius: 8,
   },
   image: {
     width: '100%',
@@ -195,26 +179,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginVertical: 4,
   },
-  category: {
-    fontSize: 16,
-    fontStyle: 'italic',
-  },
   price: {
-    fontSize: 16,
-  },
-  location: {
     fontSize: 16,
   },
   date: {
     fontSize: 14,
     color: 'gray',
   },
-  bookStatus: {
-    fontSize: 16,
-    color: 'green',
-  },
   description: {
-    marginTop: 8,
     fontSize: 16,
+    marginTop: 4,
   },
 });
