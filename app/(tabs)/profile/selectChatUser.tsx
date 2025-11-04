@@ -1,8 +1,7 @@
 import { db } from '@/utils/firebaseConfig';
 import { useRouter } from 'expo-router';
 import { collection, getDocs } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
-
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
 
 type UserType = {
